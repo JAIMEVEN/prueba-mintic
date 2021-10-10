@@ -7,6 +7,7 @@ package Logica;
 import Persistencia.ConexionBD;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,9 +28,20 @@ public class Paciente {
     public Paciente() {
     }
 
-    public Paciente getPaciente(int id) throws SQLException {
+    public Paciente(int id, String tipoDoc, String documento, String nombres, String apellidos, String genero, String telefono, String email) {
         this.id = id;
-        return this.getPaciente();
+        this.tipoDoc = tipoDoc;
+        this.documento = documento;
+        this.nombres = nombres;
+        this.apellidos = apellidos;
+        this.genero = genero;
+        this.telefono = telefono;
+        this.email = email;
+    } 
+        
+    public Paciente getPaciente(String documento) throws SQLException {
+        this.documento = documento;
+        return this.getPaciente(documento);
     }
 
     public int getId() {
@@ -94,96 +106,93 @@ public class Paciente {
 
     public void setEmail(String email) {
         this.email = email;
-    }
-
-    public boolean guardarPaciente() {
+    }   
+    
+    public String ingresarPaciente() {
         ConexionBD conexion = new ConexionBD();
         String sentencia = "INSERT INTO paciente(tipoDoc, documento, nombres, apellidos, genero, telefono, email) "
-                + " VALUES ( '" + this.tipoDoc + "','" + this.documento + "',"
+                + " VALUES ('" + this.tipoDoc + "','" + this.documento + "',"
                 + "'" + this.nombres + "','" + this.apellidos + "','" + this.genero + "',"
                 + "'" + this.telefono + "','" + this.email + "');  ";
-        if (conexion.setAutoCommitBD(false)) {
-            if (conexion.insertarBD(sentencia)) {
-                conexion.commitBD();
-                conexion.cerrarConexion();
-                return true;
+        String resultado = null;
+        try {
+            Statement st;
+            st = conexion.con.createStatement();
+            int rs;
+            rs = st.executeUpdate(sentencia);
+            if (rs==1) {
+                //rs.close();
+                resultado = "Se ingresó el paciente con éxito";
             } else {
-                conexion.rollbackBD();
-                conexion.cerrarConexion();
-                return false;
+                resultado = "No se ingresó el registro";
             }
-        } else {
-            conexion.cerrarConexion();
-            return false;
+        } catch (SQLException sqlex) {
+            resultado = sentencia+" "+sqlex.toString();
+        } catch (RuntimeException rex) {
+            resultado = rex.toString();
+        } catch (Exception ex) {
+            resultado = "Otra excepción"+ex;
         }
+        return resultado;
     }
 
-    public boolean borrarPaciente(String documento) {
-        String Sentencia = "DELETE FROM `paciente` WHERE `documento`='" + documento + "'";
+    public String eliminarPaciente() {
         ConexionBD conexion = new ConexionBD();
-        if (conexion.setAutoCommitBD(false)) {
-            if (conexion.actualizarBD(Sentencia)) {
-                conexion.commitBD();
-                conexion.cerrarConexion();
-                return true;
+        String sentencia = "DELETE FROM `paciente` WHERE `documento`='" + this.documento + "'";
+        try {
+            Statement st = conexion.con.createStatement();
+            int rs;
+            rs = st.executeUpdate(sentencia);
+            if (rs==1) {
+                //rs.close();
+                return "Se eliminó el paciente con éxito";
             } else {
-                conexion.rollbackBD();
-                conexion.cerrarConexion();
-                return false;
+                return "No se pudo eliminar el registro";
             }
-        } else {
-            conexion.cerrarConexion();
-            return false;
+        } catch (SQLException sqlex) {
+            return sentencia+sqlex.toString();
+        } catch (RuntimeException rex) {
+            return rex.toString();
+        } catch (Exception ex) {
+            return "Otra excepción"+ex;
         }
-    }
-
-    public boolean actualizarPaciente() {
-        ConexionBD conexion = new ConexionBD();
-        String Sentencia = "UPDATE `paciente` SET tipoDoc='" + this.tipoDoc + "',documento='" + this.documento + "',nombres='" + this.nombres
-                + "',apellidos='" + this.apellidos + "',genero='" + this.genero + "',telefono='" + this.telefono + "',email='" + this.email
-                +  "' WHERE documento=" + this.documento + ";";
-        if (conexion.setAutoCommitBD(false)) {
-            if (conexion.actualizarBD(Sentencia)) {
-                conexion.commitBD();
-                conexion.cerrarConexion();
-                return true;
-            } else {
-                conexion.rollbackBD();
-                conexion.cerrarConexion();
-                return false;
-            }
-        } else {
-            conexion.cerrarConexion();
-            return false;
-        }
-    }
+        //return this;
+    }   
 
     public List<Paciente> listarPacientes() throws SQLException {
         ConexionBD conexion = new ConexionBD();
         List<Paciente> listaPacientes = new ArrayList<>();
-        String sql = "select * from paciente order by idpaciente asc";
-        ResultSet rs = conexion.consultarBD(sql);
-        Paciente p;
-        while (rs.next()) {
-            p = new Paciente();
-            p.setId(rs.getInt("idpaciente"));
-            p.setTipoDoc(rs.getString("tipoDoc"));
-            p.setDocumento(rs.getString("documento"));
-            p.setNombres(rs.getString("nombres"));
-            p.setApellidos(rs.getString("apellidos"));
-            p.setGenero(rs.getString("genero"));
-            p.setTelefono(rs.getString("telefono"));
-            p.setEmail(rs.getString("email"));
-            listaPacientes.add(p);
-
-        }
+        String sentencia = "select * from paciente";
+        try{
+            Statement st = conexion.con.createStatement();
+            ResultSet rs = st.executeQuery(sentencia);
+            Paciente p;
+            while (rs.next()) {
+                p = new Paciente();
+                p.setId(rs.getInt("idpaciente"));
+                p.setTipoDoc(rs.getString("tipoDoc"));
+                p.setDocumento(rs.getString("documento"));
+                p.setNombres(rs.getString("nombres"));
+                p.setApellidos(rs.getString("apellidos"));
+                p.setGenero(rs.getString("genero"));
+                p.setTelefono(rs.getString("telefono"));
+                p.setEmail(rs.getString("email"));
+                listaPacientes.add(p);
+            }
+            rs.close();
+        }catch(SQLException sqlex){            
+        }catch(RuntimeException rex){
+        }catch(Exception ex){            
+        }        
         conexion.cerrarConexion();
         return listaPacientes;
     }
-
-    public Paciente getPaciente() throws SQLException {
+    
+    //Para consultar un solo paciente por documento
+    public Paciente consultaPaciente(String identificacion) throws SQLException {
         ConexionBD conexion = new ConexionBD();
-        String sql = "select * from paciente where documento='" + documento + "'";
+        String sql = "select * from paciente where documento=" + identificacion ;       
+        
         ResultSet rs = conexion.consultarBD(sql);
         if (rs.next()) {
             this.id = rs.getInt("idpaciente");
@@ -196,13 +205,35 @@ public class Paciente {
             this.email = rs.getString("email");
             conexion.cerrarConexion();
             System.out.println(this.nombres);
-            return this;
-
+            return this;                          
         } else {
-            conexion.cerrarConexion();
+            conexion.cerrarConexion(); 
             return null;
         }
-
+    }
+    
+    public String modificaPaciente(String documento) {
+        ConexionBD conexion = new ConexionBD();
+        String sentencia = "UPDATE paciente SET nombres='" + this.nombres + "', apellidos='" + this.apellidos + "', tipoDoc='" 
+                + this.tipoDoc + "', genero='" + this.genero + "', telefono='" + this.telefono + "', email='" + this.email 
+                + "' WHERE documento=" + this.documento + ";";
+        String resultado = null;
+        try {
+            Statement st = conexion.con.createStatement();
+            int rs = st.executeUpdate(sentencia);
+            if (rs==1) {                
+                resultado = "Se actualizaron los datos con éxito";
+            } else {
+                resultado = "No se actualizó el registro";
+            }
+        } catch (SQLException sqlex) {    
+            resultado = sentencia+" "+sqlex.toString();
+        } catch (RuntimeException rex) {
+            resultado = rex.toString();
+        } catch (Exception ex) { 
+            resultado = "Otra excepción"+ex;
+        }
+        return resultado;
     }
 
     @Override

@@ -19,7 +19,7 @@ public class Ejecutar {
     public static void main(String[] args) throws SQLException {
         // TODO code application logic here
         Paciente p = new Paciente();
-        p.getPaciente();
+        p.consultaPaciente("1097123456");
     }
     
 }
